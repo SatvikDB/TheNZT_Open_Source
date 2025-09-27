@@ -12,20 +12,23 @@ from typing import Dict, Optional
 
 def detect_response_preference(text: str) -> Dict[str, str]:
     """
-    Analyze user input text to detect preference for visual or text-based responses.
+    Analyze user input text to detect preference for visual, text, or mixed responses.
     
     Args:
         text (str): User input from personalization textarea
         
     Returns:
-        Dict[str, str]: Dictionary with 'preference' key containing 'visual' or 'text'
+        Dict[str, str]: Dictionary with 'preference' key containing 'visual', 'text', or 'mixed'
         
     Examples:
-        >>> detect_response_preference("I prefer charts and graphs")
+        >>> detect_response_preference("I prefer big charts and graphs")
         {'preference': 'visual'}
         
         >>> detect_response_preference("Give me detailed text explanations")
         {'preference': 'text'}
+        
+        >>> detect_response_preference("I like both charts and detailed explanations")
+        {'preference': 'mixed'}
     """
     if not text or not isinstance(text, str):
         return {'preference': None}
@@ -42,7 +45,8 @@ def detect_response_preference(text: str) -> Dict[str, str]:
         'dashboard', 'dashboards', 'map', 'maps', 'timeline',
         'timelines', 'flowchart', 'flowcharts', 'pie chart',
         'bar chart', 'line chart', 'scatter plot', 'heatmap',
-        'treemap', 'candlestick', 'histogram'
+        'treemap', 'candlestick', 'histogram', 'big charts',
+        'large graphs', 'prominent visuals'
     ]
     
     # Define keywords for text preferences
@@ -59,9 +63,17 @@ def detect_response_preference(text: str) -> Dict[str, str]:
         'bullet point', 'bullet points', 'list', 'lists'
     ]
     
+    # Define keywords for mixed/balanced preferences
+    mixed_keywords = [
+        'both', 'balanced', 'combination', 'mix', 'mixed',
+        'balance', 'together', 'and', 'plus', 'along with',
+        'as well as', 'combined', 'integrate', 'blend'
+    ]
+    
     # Count matches for each preference type
     visual_score = 0
     text_score = 0
+    mixed_score = 0
     
     # Check for visual keywords
     for keyword in visual_keywords:
@@ -76,26 +88,47 @@ def detect_response_preference(text: str) -> Dict[str, str]:
         matches = len(re.findall(pattern, text_lower))
         text_score += matches
     
+    # Check for mixed keywords
+    for keyword in mixed_keywords:
+        pattern = r'\b' + re.escape(keyword) + r'\b'
+        matches = len(re.findall(pattern, text_lower))
+        mixed_score += matches
+    
     # Check for preference-indicating phrases
     visual_phrases = [
+        r'\b(prefer|like|want|need|show me|give me|display).{0,20}(big|large|prominent).{0,10}(chart|graph|visual)',
+        r'\b(big|large|prominent).{0,10}(chart|graph|visual)',
         r'\b(prefer|like|want|need|show me|give me|display).{0,20}(chart|graph|visual)',
         r'\b(chart|graph|visual).{0,20}(prefer|like|want|need|better)',
         r'\bvisual\w*\s+(person|learner|type)',
         r'\bsee.{0,10}(chart|graph|visual)',
         r'\bshow.{0,10}(chart|graph|visual)',
         r'\b(more|less).{0,10}(chart|graph|visual)',
-        r'\bvisualize\b',  # Added "visualize" as a strong visual indicator
-        r'\bdashboard\b'   # Dashboard is a strong visual indicator
+        r'\bvisualize\b',
+        r'\bdashboard\b'
     ]
     
     text_phrases = [
+        r'\b(prefer|like|want|need|give me|show me).{0,20}(detailed|comprehensive|thorough).{0,10}(text|explanation|detail)',
+        r'\b(detailed|comprehensive|thorough).{0,10}(text|explanation|detail)',
         r'\b(prefer|like|want|need|give me|show me).{0,20}(text|explanation|detail)',
         r'\b(text|explanation|detail).{0,20}(prefer|like|want|need|better)',
         r'\btext\w*\s+(person|learner|type)',
         r'\bread.{0,10}(text|explanation|detail)',
         r'\bexplain.{0,10}(detail|thorough)',
         r'\b(more|less).{0,20}(text|explanation|detail)',
-        r'\bbut.{0,10}(prefer|like).{0,10}(text|explanation|detail)'  # Handle "but prefer text"
+        r'\bbut.{0,10}(prefer|like).{0,10}(text|explanation|detail)'
+    ]
+    
+    mixed_phrases = [
+        r'\b(both|combination|mix|balance).{0,20}(chart|graph|visual).{0,20}(text|explanation|detail)',
+        r'\b(both|combination|mix|balance).{0,20}(text|explanation|detail).{0,20}(chart|graph|visual)',
+        r'\b(chart|graph|visual).{0,20}(and|plus|with).{0,20}(text|explanation|detail)',
+        r'\b(text|explanation|detail).{0,20}(and|plus|with).{0,20}(chart|graph|visual)',
+        r'\bbalanced.{0,20}(approach|content|response)',
+        r'\bmix.{0,20}of.{0,20}(visual|text)',
+        r'\bcombine.{0,20}(visual|text)',
+        r'\bintegrate.{0,20}(chart|graph|visual).{0,20}(text|explanation)'
     ]
     
     # Check visual phrases
@@ -108,13 +141,23 @@ def detect_response_preference(text: str) -> Dict[str, str]:
         if re.search(phrase, text_lower):
             text_score += 2  # Phrases get higher weight
     
+    # Check mixed phrases
+    for phrase in mixed_phrases:
+        if re.search(phrase, text_lower):
+            mixed_score += 3  # Mixed phrases get highest weight
+    
     # Determine preference based on scores
-    if visual_score > text_score:
+    # If mixed indicators are present and there are both visual and text elements
+    if mixed_score > 0 and visual_score > 0 and text_score > 0:
+        return {'preference': 'mixed'}
+    elif mixed_score > max(visual_score, text_score):
+        return {'preference': 'mixed'}
+    elif visual_score > text_score and visual_score > mixed_score:
         return {'preference': 'visual'}
-    elif text_score > visual_score:
+    elif text_score > visual_score and text_score > mixed_score:
         return {'preference': 'text'}
     else:
-        # If scores are equal or both are zero, return None
+        # If scores are equal or all are zero, return None
         return {'preference': None}
 
 

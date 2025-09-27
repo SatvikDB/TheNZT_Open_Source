@@ -147,7 +147,7 @@ class ReportGenerationAgent(BaseAgent):
             user_metadata (str): The user metadata string containing preference info
             
         Returns:
-            str: 'visual', 'text', or None
+            str: 'visual', 'text', 'mixed', or None
         """
         if not user_metadata:
             return None
@@ -157,5 +157,7 @@ class ReportGenerationAgent(BaseAgent):
             return 'visual'
         elif "User Response Preference: TEXT" in user_metadata:
             return 'text'
+        elif "User Response Preference: MIXED" in user_metadata:
+            return 'mixed'
         else:
             return None

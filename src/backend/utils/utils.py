@@ -125,9 +125,11 @@ async def get_user_metadata_with_preferences(timezone: str, ip_address: str = No
             if personalization and personalization.get('response_preference'):
                 preference = personalization['response_preference']
                 if preference == 'visual':
-                    metadata += "- User Response Preference: VISUAL (prefers charts, graphs, and visual representations)\n"
+                    metadata += "- User Response Preference: VISUAL (prefers big charts, graphs, and visual representations with brief text)\n"
                 elif preference == 'text':
-                    metadata += "- User Response Preference: TEXT (prefers detailed explanations and text-based content)\n"
+                    metadata += "- User Response Preference: TEXT (prefers detailed explanations and text-based content with small supporting charts)\n"
+                elif preference == 'mixed':
+                    metadata += "- User Response Preference: MIXED (prefers balanced charts, graphs and text with equal emphasis)\n"
                 else:
                     metadata += "- User Response Preference: Not specified\n"
             else:
